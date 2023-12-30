@@ -1,2 +1,47 @@
-https://{domain}?
-userId={uuid}&orderId={orderId}&projectId={projectId}&platform={platform}&productId={productId}&store={store}&payment={payment}&transactionId={transactionId}&gamepotOrderId={gamepotOrderId}&uniqueId={uniqueId}&tp={tp}
+pipeline {
+    agent any
+
+    tools {
+        maven "maven"
+    }
+
+    stages {
+        stage('Git Pull') {
+            steps {
+                git branch: 'main', credentialsId: 'github', url: 'https://github.com/pphj/webhook-test'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir("webhook") {
+                    sh "mvn -DskipTests clean package"
+                }
+            }
+        }
+
+        stage('HTTP GET Request') {
+            steps {
+                script {
+                    def domain = "{domain}"
+                    def userId = "{userId}"
+                    def projectId = "{projectId}"
+                    def platform = "{platform}"
+                    def store = "{store}"
+                    def userData = "{userData}"
+                    def itemData = ["{itemData1}", "{itemData2}"]
+
+                    def url = "https://${domain}?userId=${userId}&projectId=${projectId}&platform=${platform}&store=${store}&userData=${userData}&itemId=${itemData.join(',')}"
+                    
+                    def response = sh(script: "curl -X GET ${url}", returnStatus: true)
+                    
+                    if (response == 0) {
+                        echo "HTTP GET Request successful"
+                    } else {
+                        error "HTTP GET Request failed"
+                    }
+                }
+            }
+        }
+    }
+}
